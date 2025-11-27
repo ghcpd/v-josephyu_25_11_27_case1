@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
 from flask_login import login_user, logout_user, login_required
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
@@ -36,6 +36,12 @@ def login():
         flash('Invalid username or password')
     return render_template('login.html', form=form)
 
+
+# Alias to satisfy documentation references
+@auth_bp.route('/signin', methods=['GET', 'POST'])
+def signin():
+    return login()
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
@@ -59,8 +65,72 @@ def register():
         return redirect(url_for('dashboard'))
     return render_template('register.html', form=form)
 
+
+# Alias to satisfy documentation references
+@auth_bp.route('/signup', methods=['GET', 'POST'])
+def signup():
+    return register()
+
 @auth_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
+
+
+# JSON API endpoints
+def _extract_creds(data: dict):
+    # Accept both doc-specified keys and canonical keys
+    username = data.get('username') or data.get('user')
+    password = data.get('password') or data.get('pass')
+    email = data.get('email') or data.get('mail')
+    return username, password, email
+
+
+@auth_bp.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.get_json(force=True, silent=True) or {}
+    username, password, email = _extract_creds(data)
+
+    # Basic validation mirroring WTForms rules
+    errors = {}
+    if not username or not (3 <= len(username) <= 32):
+        errors['user'] = 'Username required (3-32 chars).'
+    if not password or not (6 <= len(password) <= 128):
+        errors['pass'] = 'Password required (6-128 chars).'
+    if not email:
+        errors['mail'] = 'Email required.'
+    if errors:
+        return jsonify({'status': 'error', 'errors': errors}), 400
+
+    conn = get_connection(current_app)
+    try:
+        existing = User.get_by_username(conn, username)
+        if existing:
+            return jsonify({'status': 'error', 'errors': {'user': 'Username already exists'}}), 409
+        cur = conn.cursor()
+        cur.execute('SELECT id FROM users WHERE email = ?', (email,))
+        if cur.fetchone():
+            return jsonify({'status': 'error', 'errors': {'mail': 'Email already exists'}}), 409
+        user = User.create(conn, username, password, email)
+        return jsonify({'status': 'ok', 'id': user.id, 'user': user.username}), 201
+    finally:
+        conn.close()
+
+
+@auth_bp.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json(force=True, silent=True) or {}
+    username, password, _ = _extract_creds(data)
+    if not username or not password:
+        return jsonify({'status': 'error', 'errors': {'user': 'Username and password required'}}), 400
+
+    conn = get_connection(current_app)
+    try:
+        user = User.get_by_username(conn, username)
+        if user and user.verify_password(password):
+            login_user(user)
+            return jsonify({'status': 'ok', 'user': user.username}), 200
+        return jsonify({'status': 'error', 'errors': {'auth': 'Invalid credentials'}}), 401
+    finally:
+        conn.close()

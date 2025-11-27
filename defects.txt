@@ -1,0 +1,57 @@
+# Documentation Defects & Mismatches
+
+1) **Virtualenv creation command (Windows)**
+   - **Doc command:** `python3 -m venv .venv`
+   - **Result (PowerShell):**
+     ```
+     Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
+     ```
+   - **Fix:** Use `python -m venv .venv` on Windows.
+
+2) **Activation command (Windows)**
+   - **Doc command:** `source .venv/bin/activate`
+   - **Result (PowerShell):**
+     ```
+     source : The term 'source' is not recognized as the name of a cmdlet, function, script file, or operable program.
+     ```
+   - **Fix:** Use `.\.venv\Scripts\Activate` in PowerShell.
+
+3) **Quick start host/port ignored**
+   - **Doc command:** `python app.py --host=0.0.0.0 --port=8080`
+   - **Observed (before fix):** App still bound to `http://127.0.0.1:5000` (args ignored).
+   - **Fix:** Added argparse support in `app.py` to honor `--host/--port` (now binds to 0.0.0.0:8080 as documented).
+
+4) **Missing routes**
+   - **Doc routes:** `/signup`, `/signin`, `/profile`, `/api/register`, `/api/login`
+   - **Observed (before fix):** 404 for all; sample probe:
+     ```
+     /signup    404
+     /signin    404
+     /profile   404
+     /api/register 404
+     /api/login    404
+     ```
+   - **Fix:** Added `/signup`→`/register`, `/signin`→`/login`, `/profile`→dashboard aliases; implemented JSON APIs for register/login.
+
+5) **Form & validation discrepancies**
+   - **Doc:** Email optional; password min length 3; confirm_password field required.
+   - **Actual:** Email required (DB `NOT NULL` & unique); password min length 6; no confirm_password field.
+   - **Fix:** Documented actual rules; tests cover validation errors.
+
+6) **Database location**
+   - **Doc:** `data/database.sqlite3`
+   - **Actual:** `app.db` (config key `DATABASE`).
+   - **Fix:** Documented correct path; configurable via `app.config['DATABASE']`.
+
+7) **Session storage**
+   - **Doc:** Sessions stored in Redis.
+   - **Actual:** Default Flask signed cookies (no Redis configured).
+   - **Fix:** Documented actual behavior.
+
+8) **Tests script missing**
+   - **Doc:** `bash run_tests.sh`
+   - **Actual:** File absent.
+   - **Fix:** Added `run_tests.sh` and `test_files/` pytest suite; all tests pass.
+
+---
+**Note:** Defects were addressed in documentation and code where practical. See `corrected_readme.md` for working instructions.
