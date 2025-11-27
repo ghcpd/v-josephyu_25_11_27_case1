@@ -1,0 +1,69 @@
+Defects discovered while validating README and running tests
+
+1) README: Shell / venv activation instructions use Unix commands by default ("source .venv/bin/activate") but user may be on Windows.
+   - Reproduction steps:
+     - On Windows PowerShell, run the command as in README
+     - Expected: venv activates
+     - Actual: PowerShell returns "Unexpected token 'app.py' in expression or statement" when running an unquoted command with & in path (see below)
+   - Error trace / notes:
+     - Example of initial incorrect run: (PowerShell attempted a command; the path contains '&' which is a PowerShell operator)
+       > Unexpected token 'app.py' in expression or statement.
+
+    Additionally, when pytest was first run while a background Flask server (started by a previous manual run) was active, pytest output contained a development server startup which caused the run to hang or fail. The server must be stopped before running tests.
+    Trace sample:
+      * Serving Flask app 'app'
+      * Debug mode: on
+      WARNING: This is a development server. Do not use it in a production deployment.
+      * Running on http://127.0.0.1:5000
+
+
+2) README: Endpoints are incorrectly documented (`/signup`, `/signin`, `/profile`) — actual endpoints are `/register`, `/login`, `/dashboard` (and `/logout`).
+   - Reproduction steps:
+     - Try to open `/signup` or `/signin` in browser
+     - Expected: Signup or signin page
+     - Actual: 404 Not Found
+
+3) README: API endpoints `/api/register` and `/api/login` listed but are not implemented.
+   - Reproduction steps:
+     - Use curl or REST client to POST to `/api/register`
+     - Expected: 201 Created JSON response
+     - Actual: 404 Not Found
+
+4) README: Session storage indicates Redis; current implementation uses Flask's default cookie-based sessions; Redis is not configured.
+   - Reproduction steps:
+     - Check for Redis configuration in code
+     - Expected: redis session initialization
+     - Actual: No Redis usage found; `Flask-Session` or similar not present in code.
+
+5) README: Password minimum length stated as 3; implementation requires at least 6 characters (validator Length(min=6)).
+   - Reproduction steps:
+     - Try registering with a 3-character password
+     - Expected: registration succeeds
+     - Actual: Form validation prevents registration due to length
+
+6) README: Email optional claim — code enforces Email validator and DataRequired on email field.
+   - Reproduction steps:
+     - Use register page and submit without email
+     - Expected: registration succeeds
+     - Actual: Form validation prevents submission; email is required
+
+7) README: Database path mentions `data/database.sqlite3`; actual app uses `app.db` at project root by default. `models.py` uses app.config['DATABASE'] with default 'app.db'.
+
+8) README: Startup flags example `python app.py --host=0.0.0.0 --port=8080` suggests CLI support in app.py. Implementation does not parse CLI args, so those flags are ignored; to change host/port, use `flask run` or modify the code.
+
+Reproducing errors (commands used during validation):
+
+- Incorrect PowerShell quoting (initial mistake):
+  & D:/.../.venv/Scripts/python.exe app.py
+  -> produced: "Unexpected token 'app.py' in expression or statement" because the folder path contains '&' which is a PowerShell operator.
+
+- Missing API endpoints check (used our test client via pytest):
+  - POST /api/register -> 404 Not Found
+  - POST /api/login -> 404 Not Found
+
+- Other behaviors validated via pytest tests (see tests/test_auth.py and tests/test_extra.py in tests/ folder)
+
+Notes:
+- The app is runnable with `python app.py` and tests pass when using the provided requirements in a venv.
+- Many documentation issues are corrected in `corrected_readme.md`.
+
