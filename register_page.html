@@ -1,0 +1,56 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flask Login Example</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+      <div class="container">
+        <a class="navbar-brand" href="/">Sample App</a>
+      </div>
+    </nav>
+    <div class="container">
+      
+        
+      
+      
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">User Registration</div>
+      <div class="card-body">
+        <form method="POST">
+          <input id="csrf_token" name="csrf_token" type="hidden" value="ImIxY2E3YTJhOGE1ZTJlNzk0MmNmMTVhNjY3NTA3NDg0MDZkM2Q4MzIi.aSfckQ.kodlLCd7yDfJh0-uO9PpNiNFf4c">
+          <div class="mb-3">
+            <label class="form-label" for="username">Username</label>
+            <input class="form-control" id="username" maxlength="32" minlength="3" name="username" required type="text" value="">
+            
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control" id="email" maxlength="255" name="email" placeholder="name@example.com" required type="text" value="">
+            
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-control" id="password" maxlength="128" minlength="6" name="password" required type="password" value="">
+            
+          </div>
+          <div class="d-flex gap-2">
+            <input class="btn btn-success" id="submit" name="submit" type="submit" value="Register">
+            <a href="/login" class="btn btn-secondary">Go to Login</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
+
