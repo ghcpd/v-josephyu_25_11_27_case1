@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">User Registration</div>
+      <div class="card-body">
+        <form method="POST">
+          {{ form.hidden_tag() }}
+          <div class="mb-3">
+            {{ form.username.label(class='form-label') }}
+            {{ form.username(class='form-control') }}
+            {% if form.username.errors %}
+              <div class="text-danger small mt-1">
+                {% for e in form.username.errors %}{{ e }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            {{ form.email.label(class='form-label') }}
+            {{ form.email(class='form-control', placeholder='name@example.com') }}
+            {% if form.email.errors %}
+              <div class="text-danger small mt-1">
+                {% for e in form.email.errors %}{{ e }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            {{ form.password.label(class='form-label') }}
+            {{ form.password(class='form-control') }}
+            {% if form.password.errors %}
+              <div class="text-danger small mt-1">
+                {% for e in form.password.errors %}{{ e }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-2">
+            {{ form.submit(class='btn btn-success') }}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">Go to Login</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
