@@ -1,0 +1,92 @@
+Defect report for oswe-mini-prime repository
+
+1) Activation command in README does not work on Windows PowerShell
+- Expected: `source .venv/bin/activate` to work cross-platform
+- Reality: `source` is not recognized in PowerShell.
+- Reproduction:
+  - On PowerShell, run: `source .venv/bin/activate`
+  - Error: "source : The term 'source' is not recognized as the name of a cmdlet..."
+- Suggested correction: Provide alternative for PowerShell: `.\.venv\Scripts\Activate.ps1` (PowerShell) and `source .venv/bin/activate` (Unix/Bash).
+
+2) README suggests `python app.py --host=0.0.0.0 --port=8080` sets host/port
+- Expected: App should start on the specified host & port
+- Reality: App still runs on 127.0.0.1:5000 because `app.py` doesn't parse CLI args; using `flask run` is preferred.
+- Reproduction & trace:
+  - Start the app with: `python app.py --host=0.0.0.0 --port=8080`
+  - Observed output: `* Running on http://127.0.0.1:5000`
+- Suggestion: Use `flask run --host=0.0.0.0 --port=8080` or implement argparse in `app.py`.
+
+3) README references endpoints `/signup`, `/signin`, and `/profile` which don't exist
+- Expected: `/signup`, `/signin`, `/profile` working
+- Reality: The app uses `/register`, `/login`, `/dashboard`.
+- Reproduction & traces:
+  - GET /signup returned 404
+  - GET /signin returned 404
+  - GET /profile returned 404
+- Suggestion: Update README endpoints to actual values `/register`, `/login`, `/dashboard`.
+
+4) README lists API endpoints `/api/register` and `/api/login` — not implemented
+- Reproduction: POST to `/api/register` and `/api/login` returns 404
+- Suggestion: Either implement the API endpoints or remove from README.
+
+5) Email is optional in README but required in app
+- Expected: README says email is optional
+- Reality: `RegisterForm` has `email` as `DataRequired()` and Email validator. Submitting empty email fails with message "This field is required".
+- Reproduction & trace: POST to `/register` with empty email yields the validation error: "This field is required".
+
+6) Password minimum length mismatch
+- Expected: README says min password length 3
+- Reality: `RegisterForm` enforces `Length(min=6, max=128)`; the error message shown is: "Field must be between 6 and 128 characters long."
+- Reproduction & trace: POST to `/register` with password '123' returns the page with visible validation text.
+
+7) `confirm_password` field in README but not implemented in the actual form
+- Expected: README shows `confirm_password` used in registration
+- Reality: Register page doesn't include `confirm_password` input.
+- Suggestion: Either add the field to `RegisterForm` or remove it from the documentation.
+
+8) Database path mismatch
+- Expected: README says `data/database.sqlite3` contains the DB
+- Reality: code uses `app.config['DATABASE'] = 'app.db'` at root. No `data/` folder exists.
+- Reproduction: app uses `app.db` created at root; `data/database.sqlite3` does not exist. (No such folder.)
+
+9) Sessions in Redis — not implemented
+- Expected: Sessions stored server-side in Redis
+- Reality: No Redis usage found in code, sessions are default Flask sessions.
+- Reproduction: No redis client or Flask-Session integration found in repo.
+
+10) 'bash run_tests.sh' suggested but not present
+- Expected: README includes `bash run_tests.sh` to execute tests
+- Reality: The repo did not include a script named run_tests.sh originally (now created).
+
+11) Missing dependencies in requirements
+- The test scripts use `requests` but it's not initially listed in requirements. We added `requests` to `requirements.txt`.
+
+12) CSRF handling in forms
+- The README mentions `FLASK_SECRET` variable to configure CSRF; the app uses `SECRET_KEY` config value and doesn't read `FLASK_SECRET` env var.
+
+----
+All the above were reproducible locally on Windows PowerShell.
+See the attached traces in-line where applicable for the expected vs actual outputs.
+
+Recorded traces and outputs (snippets):
+
+- Activation error:
+PS> source .venv/bin/activate
+source : The term 'source' is not recognized as the name of a cmdlet, function, script file, or operable program.
+
+- Running with CLI host/port args (ignored) (app output):
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+* Running on http://127.0.0.1:5000
+
+- GET /signup -> 404; GET /register -> 200; POST /api/register -> 404; POST /api/login -> 404; GET /profile -> 404
+
+- Password validation message:
+<div class="text-danger small mt-1">
+  Field must be between 6 and 128 characters long.
+</div>
+
+- Email required message: "This field is required"
+
+
+If you'd like, I can submit a PR that implements the corrected README, add a factory-based app to make testing easier, and implement optional API endpoints.
+
