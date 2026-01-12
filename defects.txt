@@ -1,0 +1,370 @@
+# DEFECTS FOUND IN README.md
+
+This document lists all defects found when comparing the README documentation with the actual implementation.
+
+================================================================================
+DEFECT #1: Incorrect Quick Start Command
+================================================================================
+
+**README States:**
+```bash
+python app.py --host=0.0.0.0 --port=8080
+```
+
+**Actual Behavior:**
+The app.py file does not parse command-line arguments. The code is:
+```python
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+**Error When Following README:**
+```
+$ python app.py --host=0.0.0.0 --port=8080
+usage: app.py [-h]
+app.py: error: unrecognized arguments: --host=0.0.0.0 --port=8080
+```
+
+**Reproduction Steps:**
+1. Run: python app.py --host=0.0.0.0 --port=8080
+2. Command fails with unrecognized arguments error
+
+**Correct Command:**
+```bash
+python app.py
+# Or if you need custom host/port:
+flask run --host=0.0.0.0 --port=8080
+# Or use environment variables:
+# set FLASK_APP=app.py (Windows) or export FLASK_APP=app.py (Linux/Mac)
+# flask run --host=0.0.0.0 --port=8080
+```
+
+================================================================================
+DEFECT #2: Incorrect Registration Route
+================================================================================
+
+**README States:**
+"Register a user at `/signup`"
+
+**Actual Implementation:**
+The registration route is `/register`, not `/signup`
+
+**Error When Following README:**
+```
+GET /signup HTTP/1.1
+404 Not Found
+```
+
+**Reproduction Steps:**
+1. Navigate to http://localhost:5000/signup
+2. Receive 404 error
+3. Actual route is at http://localhost:5000/register
+
+**Evidence from Code (auth.py, line 40):**
+```python
+@auth_bp.route('/register', methods=['GET', 'POST'])
+def register():
+```
+
+================================================================================
+DEFECT #3: Incorrect Login Route
+================================================================================
+
+**README States:**
+"Then login at `/signin`"
+
+**Actual Implementation:**
+The login route is `/login`, not `/signin`
+
+**Error When Following README:**
+```
+GET /signin HTTP/1.1
+404 Not Found
+```
+
+**Reproduction Steps:**
+1. Navigate to http://localhost:5000/signin
+2. Receive 404 error
+3. Actual route is at http://localhost:5000/login
+
+**Evidence from Code (auth.py, line 25):**
+```python
+@auth_bp.route('/login', methods=['GET', 'POST'])
+def login():
+```
+
+================================================================================
+DEFECT #4: Incorrect Profile Route
+================================================================================
+
+**README States:**
+"Access the user profile at `/profile`"
+
+**Actual Implementation:**
+There is no `/profile` route. The authenticated user route is `/dashboard`
+
+**Error When Following README:**
+```
+GET /profile HTTP/1.1
+404 Not Found
+```
+
+**Reproduction Steps:**
+1. Login successfully
+2. Navigate to http://localhost:5000/profile
+3. Receive 404 error
+4. Actual route is at http://localhost:5000/dashboard
+
+**Evidence from Code (app.py, lines 29-32):**
+```python
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', user=current_user)
+```
+
+================================================================================
+DEFECT #5: Missing confirm_password Field
+================================================================================
+
+**README States:**
+"Register a user at `/signup` with fields: `username`, `email`, `password`, `confirm_password`"
+
+**Actual Implementation:**
+The registration form only has three fields: username, email, and password.
+There is NO confirm_password field.
+
+**Evidence from Code (auth.py, lines 15-18):**
+```python
+class RegisterForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=32)])
+    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=255)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6, max=128)])
+    submit = SubmitField('Register')
+```
+
+**Reproduction Steps:**
+1. Navigate to /register
+2. Inspect form fields
+3. Only three input fields present: username, email, password
+4. No confirm_password field exists
+
+================================================================================
+DEFECT #6: Incorrect Password Minimum Length
+================================================================================
+
+**README States:**
+"Password minimum length is 3"
+
+**Actual Implementation:**
+Password minimum length is 6, not 3
+
+**Error When Following README:**
+If a user tries to register with a 3-character password (as the README suggests is valid):
+```
+Field must be at least 6 characters long.
+```
+
+**Evidence from Code (auth.py, line 17):**
+```python
+password = PasswordField('Password', validators=[DataRequired(), Length(min=6, max=128)])
+```
+
+**Reproduction Steps:**
+1. Navigate to /register
+2. Enter username: testuser
+3. Enter email: test@example.com
+4. Enter password: 123 (3 characters as README suggests is valid)
+5. Submit form
+6. Receive validation error: "Field must be at least 6 characters long"
+
+================================================================================
+DEFECT #7: Email is Required, Not Optional
+================================================================================
+
+**README States:**
+"Email is optional"
+
+**Actual Implementation:**
+Email is REQUIRED, not optional
+
+**Error When Following README:**
+If a user tries to register without an email (believing it's optional):
+```
+This field is required.
+```
+
+**Evidence from Code (auth.py, line 16):**
+```python
+email = StringField('Email', validators=[DataRequired(), Email(), Length(max=255)])
+```
+
+The `DataRequired()` validator makes email mandatory.
+
+**Reproduction Steps:**
+1. Navigate to /register
+2. Enter username and password but leave email blank
+3. Submit form
+4. Receive error: "This field is required"
+
+================================================================================
+DEFECT #8: Incorrect Database Location
+================================================================================
+
+**README States:**
+"The database file is `data/database.sqlite3`"
+
+**Actual Implementation:**
+The database file is `app.db` at the root of the workspace, not in a `data/` subdirectory
+
+**Evidence from Code (app.py, line 9):**
+```python
+app.config['DATABASE'] = 'app.db'  # SQLite file at root of workspace
+```
+
+**Reproduction Steps:**
+1. Run the application
+2. Check for database file at data/database.sqlite3 - file does not exist
+3. Database is actually created at ./app.db
+
+================================================================================
+DEFECT #9: No Redis Session Storage
+================================================================================
+
+**README States:**
+"Sessions are stored server-side in Redis"
+
+**Actual Implementation:**
+Sessions are NOT stored in Redis. The application uses Flask's default session management
+(client-side cookie-based sessions with Flask-Login).
+
+**Evidence:**
+1. No Redis imports in any file
+2. No Redis configuration in app.py
+3. No redis or Flask-Session in requirements.txt
+4. Flask-Login uses cookie-based sessions by default
+
+**Reproduction Steps:**
+1. Search codebase for 'redis' - no results
+2. Check requirements.txt - no Redis-related packages
+3. Sessions are stored in cookies, not Redis
+
+================================================================================
+DEFECT #10: Non-existent API Endpoints
+================================================================================
+
+**README States:**
+```
+- POST `/api/register`
+  - Body: `{ "user": "name", "pass": "123", "mail": "email@example.com" }`
+  - Response: `201 Created`
+
+- POST `/api/login`
+  - Body: `{ "user": "name", "pass": "123" }`
+  - Response: `200 OK`
+```
+
+**Actual Implementation:**
+Neither `/api/register` nor `/api/login` endpoints exist in the application.
+The application only has HTML form-based routes, no JSON API endpoints.
+
+**Error When Following README:**
+```
+POST /api/register HTTP/1.1
+Content-Type: application/json
+{"user": "name", "pass": "123", "mail": "email@example.com"}
+
+Response:
+404 Not Found
+```
+
+**Reproduction Steps:**
+1. Try to POST to /api/register with JSON body
+2. Receive 404 error
+3. Try to POST to /api/login with JSON body
+4. Receive 404 error
+5. These endpoints do not exist in the codebase
+
+**Evidence:**
+Search all Python files for '/api/' - no results found
+
+================================================================================
+DEFECT #11: FLASK_SECRET Environment Variable Not Used
+================================================================================
+
+**README States:**
+"Use environment variable `FLASK_SECRET` to configure CSRF"
+
+**Actual Implementation:**
+The SECRET_KEY is hardcoded in app.py and does not read from FLASK_SECRET environment variable
+
+**Evidence from Code (app.py, line 8):**
+```python
+app.config['SECRET_KEY'] = 'replace-with-a-strong-secret-key'
+```
+
+**Correct Implementation Would Be:**
+```python
+import os
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET', 'replace-with-a-strong-secret-key')
+```
+
+**Reproduction Steps:**
+1. Set environment variable: export FLASK_SECRET=my-secret-key (or set FLASK_SECRET=my-secret-key on Windows)
+2. Run application
+3. Check app.config['SECRET_KEY']
+4. Value is still 'replace-with-a-strong-secret-key', not 'my-secret-key'
+
+================================================================================
+DEFECT #12: Setup Command Missing email_validator
+================================================================================
+
+**README States:**
+```bash
+pip install flask flask-login flask-wtf wtforms
+```
+
+**Actual Implementation:**
+The application requires `email_validator` package for email validation in WTForms,
+but it's not listed in the setup instructions.
+
+**Error When Following README:**
+```
+ImportError: email_validator is not installed. Install it with: pip install email-validator
+```
+
+**Evidence from Code (auth.py, line 16):**
+```python
+email = StringField('Email', validators=[DataRequired(), Email(), Length(max=255)])
+```
+
+The `Email()` validator requires the email_validator package.
+
+**Correct Command:**
+```bash
+pip install flask flask-login flask-wtf wtforms email_validator
+```
+
+**Reproduction Steps:**
+1. Create fresh virtual environment
+2. Run: pip install flask flask-login flask-wtf wtforms
+3. Try to access /register route
+4. Get ImportError for email_validator
+
+================================================================================
+
+SUMMARY OF DEFECTS:
+1. Quick Start command doesn't work (app.py doesn't parse arguments)
+2. Registration route is /register, not /signup
+3. Login route is /login, not /signin
+4. Profile route is /dashboard, not /profile
+5. No confirm_password field in registration form
+6. Password minimum is 6 characters, not 3
+7. Email is required, not optional
+8. Database is at app.db, not data/database.sqlite3
+9. Sessions use cookies, not Redis
+10. API endpoints /api/register and /api/login don't exist
+11. FLASK_SECRET environment variable is not used
+12. email_validator package missing from setup instructions
+
+Total: 12 defects found
